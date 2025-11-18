@@ -1,71 +1,82 @@
+import { useEffect, useMemo, useState } from 'react'
+import SearchBar from './components/SearchBar'
+import Filters from './components/Filters'
+import PhotoGrid from './components/PhotoGrid'
+import DetailDrawer from './components/DetailDrawer'
+
 function App() {
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+  const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [query, setQuery] = useState({ q: '' })
+  const [filters, setFilters] = useState({})
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(48)
+  const [selected, setSelected] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const params = useMemo(() => {
+    const p = new URLSearchParams()
+    if (query.q) p.set('q', query.q)
+    Object.entries(filters).forEach(([k,v]) => {
+      if (v !== undefined && v !== '' && v !== null) p.set(k, v)
+    })
+    p.set('page', String(page))
+    p.set('page_size', String(pageSize))
+    return p.toString()
+  }, [query, filters, page, pageSize])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`${baseUrl}/api/search?${params}`)
+        const data = await res.json()
+        setItems(data.items || [])
+        setTotal(data.total || 0)
+      } catch (e) {
+        setItems([])
+        setTotal(0)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [params])
+
+  useEffect(() => { setPage(1) }, [query, filters])
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(59,130,246,0.10),transparent_25%),radial-gradient(circle_at_80%_0%,rgba(168,85,247,0.08),transparent_25%)] pointer-events-none" />
+      <div className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Photo Search</h1>
+          <a href="/test" className="text-slate-300 hover:text-white text-sm">System check</a>
+        </header>
 
-      <div className="relative min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full">
-          {/* Header with Flames icon */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center mb-6">
-              <img
-                src="/flame-icon.svg"
-                alt="Flames"
-                className="w-24 h-24 drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
-              />
-            </div>
+        <SearchBar onSearch={setQuery} />
+        <Filters onChange={setFilters} />
 
-            <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-              Flames Blue
-            </h1>
-
-            <p className="text-xl text-blue-200 mb-6">
-              Build applications through conversation
-            </p>
-          </div>
-
-          {/* Instructions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-8 shadow-xl mb-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Describe your idea</h3>
-                <p className="text-blue-200/80 text-sm">Use the chat panel on the left to tell the AI what you want to build</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Watch it build</h3>
-                <p className="text-blue-200/80 text-sm">Your app will appear in this preview as the AI generates the code</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Refine and iterate</h3>
-                <p className="text-blue-200/80 text-sm">Continue the conversation to add features and make changes</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center">
-            <p className="text-sm text-blue-300/60">
-              No coding required • Just describe what you want
-            </p>
+        <div className="flex items-center justify-between pt-2">
+          <div className="text-slate-300 text-sm">{total.toLocaleString()} results</div>
+          <div className="flex items-center gap-2 text-sm">
+            <button disabled={page<=1} onClick={() => setPage((p)=>p-1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Prev</button>
+            <div className="text-slate-400">{page} / {totalPages}</div>
+            <button disabled={page>=totalPages} onClick={() => setPage((p)=>p+1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Next</button>
           </div>
         </div>
+
+        {loading ? (
+          <div className="py-20 text-center text-slate-400">Loading…</div>
+        ) : (
+          <PhotoGrid items={items} onOpen={(item)=>setSelected(item)} />
+        )}
       </div>
+
+      <DetailDrawer open={!!selected} item={selected} onClose={()=>setSelected(null)} />
     </div>
   )
 }
