@@ -3,6 +3,7 @@ import SearchBar from './components/SearchBar'
 import Filters from './components/Filters'
 import PhotoGrid from './components/PhotoGrid'
 import DetailDrawer from './components/DetailDrawer'
+import ImportPanel from './components/ImportPanel'
 
 function App() {
   const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
@@ -57,23 +58,31 @@ function App() {
           <a href="/test" className="text-slate-300 hover:text-white text-sm">System check</a>
         </header>
 
-        <SearchBar onSearch={setQuery} />
-        <Filters onChange={setFilters} />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3 space-y-4">
+            <SearchBar onSearch={setQuery} />
+            <Filters onChange={setFilters} />
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-slate-300 text-sm">{total.toLocaleString()} results</div>
-          <div className="flex items-center gap-2 text-sm">
-            <button disabled={page<=1} onClick={() => setPage((p)=>p-1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Prev</button>
-            <div className="text-slate-400">{page} / {totalPages}</div>
-            <button disabled={page>=totalPages} onClick={() => setPage((p)=>p+1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Next</button>
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-slate-300 text-sm">{total.toLocaleString()} results</div>
+              <div className="flex items-center gap-2 text-sm">
+                <button disabled={page<=1} onClick={() => setPage((p)=>p-1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Prev</button>
+                <div className="text-slate-400">{page} / {totalPages}</div>
+                <button disabled={page>=totalPages} onClick={() => setPage((p)=>p+1)} className="px-3 py-1.5 rounded bg-slate-800/70 border border-slate-700 disabled:opacity-40">Next</button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="py-20 text-center text-slate-400">Loading…</div>
+            ) : (
+              <PhotoGrid items={items} onOpen={(item)=>setSelected(item)} />
+            )}
+          </div>
+
+          <div className="lg:col-span-1">
+            <ImportPanel />
           </div>
         </div>
-
-        {loading ? (
-          <div className="py-20 text-center text-slate-400">Loading…</div>
-        ) : (
-          <PhotoGrid items={items} onOpen={(item)=>setSelected(item)} />
-        )}
       </div>
 
       <DetailDrawer open={!!selected} item={selected} onClose={()=>setSelected(null)} />
